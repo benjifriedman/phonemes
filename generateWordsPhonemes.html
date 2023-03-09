@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phonemes</title>
+    <meta author="Benji Friedman" />
+    <style>
+      p,
+      #color-filter {
+        font-size: 2rem;
+        font-family: monospace;
+        margin: 50px auto;
+        padding: 0 35px;
+        max-width: 1025px;
+        font-weight: 600;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <p>
+      <label for="color-select">Select a color:</label>
+      <select id="color-select">
+        <option value="">-- Select a color --</option>
+        <option value="red">Red</option>
+        <option value="blue">Blue</option>
+        <option value="green">Green</option>
+        <option value="orange">Orange</option>
+        <option value="purple">Purple</option>
+        <option value="black">Black</option>
+        <option value="gray">Gray</option>
+      </select>
+    </p>
+    <div id="color-filter">
+      <label for="color-checkboxes">Filter by color:</label>
+      <br />
+      <input type="checkbox" id="color-red" value="red" />
+      <label for="color-red">Red</label>
+      <input type="checkbox" id="color-blue" value="blue" />
+      <label for="color-blue">Blue</label>
+      <input type="checkbox" id="color-green" value="green" />
+      <label for="color-green">Green</label>
+      <input type="checkbox" id="color-orange" value="orange" />
+      <label for="color-orange">Orange</label>
+      <input type="checkbox" id="color-purple" value="purple" />
+      <label for="color-purple">Purple</label>
+      <input type="checkbox" id="color-black" value="black" />
+      <label for="color-black">Black</label>
+      <input type="checkbox" id="color-gray" value="gray" />
+      <label for="color-gray">Gray</label>
+    </div>
+    <!-- <p><button id="reset-button">Reset</button></p> -->
+    <p id="word-list"></p>
+    <script>
+      const possibleColors = [
+        "red",
+        "blue",
+        "green",
+        "orange",
+        "purple",
+        "black",
+        "gray",
+      ];
+      const consonants = [
+        "t",
+        "n",
+        "s",
+        "h",
+        "r",
+        "d",
+        "l",
+        "c",
+        "m",
+        "w",
+        "y",
+        "f",
+        "g",
+        "p",
+        "b",
+        "v",
+        "k",
+        "j",
+        "x",
+        "z",
+        "q",
+        "th",
+        "sh",
+        "ch",
+        "wh",
+      ];
+      const consonantWeights = [
+        10.57, 7.16, 6.51, 6.09, 5.99, 4.25, 4.03, 3.98, 3.15, 2.56, 2.34, 2.23,
+        2.02, 1.97, 1.49, 1.43, 0.93, 0.87, 0.13, 0.09, 0.07, 0.06, 0.03, 0.02,
+        0.02,
+      ];
+
+      const wordListEl = document.getElementById("word-list");
+      const vowels = ["a", "e", "i", "o", "u"];
+      const spans = [];
+      const checkboxes = document.querySelectorAll(
+        "#color-filter input[type='checkbox']"
+      );
+
+      const colorSelect = document.getElementById("color-select");
+      colorSelect.addEventListener("change", function (event) {
+        const selectedColor = event.target.value;
+        updateVisibility(selectedColor);
+      });
+
+      /*
+      const resetButton = document.getElementById("reset-button");
+      resetButton.addEventListener("click", function () {
+        // Generate 5000 new words and update the word list
+        // const newWords = generateWords();
+        // updateWordList(newWords);
+
+        // Reset the color selector to its default value
+        const colorSelector = document.getElementById("color-selector");
+        colorSelector.selectedIndex = 0;
+
+        // Reset #color-filter checkboxes
+        checkboxes.forEach((checkbox) => (checkbox.checked = false));
+        updateVisibility(colorSelector.value);
+      });
+*/
+
+      function randomWord() {
+        const length = Math.floor(Math.random() * 2) + 2;
+        let word = "";
+        let prev = "";
+        let first = true;
+        for (let i = 0; i < length; i++) {
+          let phoneme;
+          if (first) {
+            // choose a random consonant or vowel for the first phoneme
+            phoneme =
+              Math.random() < 0.5
+                ? consonants[Math.floor(Math.random() * consonants.length)]
+                : vowels[Math.floor(Math.random() * vowels.length)];
+            first = false;
+          } else {
+            // choose a random vowel to connect to the previous phoneme
+            phoneme = vowels[Math.floor(Math.random() * vowels.length)];
+            // if the previous phoneme was a vowel, choose a random consonant to follow it
+            if (vowels.includes(prev)) {
+              phoneme = consonants[weightedRandom(consonantWeights)] + phoneme;
+            }
+          }
+          word += phoneme;
+          prev = phoneme[phoneme.length - 1]; // update the previous phoneme to the last character of the current phoneme
+        }
+
+        let lastIsVowel =
+          word.endsWith("a") ||
+          word.endsWith("e") ||
+          word.endsWith("i") ||
+          word.endsWith("o") ||
+          word.endsWith("u");
+        if (lastIsVowel && Math.random() < 0.75) {
+          let newLastPhoneme =
+            consonants[Math.floor(Math.random() * consonants.length)];
+          word = word + newLastPhoneme;
+        }
+
+        let lastIsWeirdConsonant = word.endsWith("wh") || word.endsWith("j");
+        if (lastIsWeirdConsonant) {
+          let newLastPhoneme =
+            vowels[Math.floor(Math.random() * vowels.length)];
+          word = word + newLastPhoneme;
+        }
+
+        return word;
+      }
+
+      // helper function to choose a random index from an array of weights
+      function weightedRandom(weights) {
+        const total = weights.reduce((sum, weight) => sum + weight);
+        const rand = Math.random() * total;
+        let sum = 0;
+        for (let i = 0; i < weights.length; i++) {
+          sum += weights[i];
+          if (rand < sum) {
+            return i;
+          }
+        }
+        return weights.length - 1;
+      }
+
+      function updateVisibility(selectedColor) {
+        const allSpans = document.querySelectorAll("#word-list span");
+        for (let i = 0; i < allSpans.length; i++) {
+          const span = allSpans[i];
+          if (span.style.color === selectedColor) {
+            span.style.visibility = "visible";
+          } else {
+            span.style.visibility = "hidden";
+          }
+        }
+      }
+
+      function filterColors() {
+        // Get an array of the checked colors
+        const checkedColors = [];
+        const checkboxes = document.querySelectorAll(
+          "#color-filter input[type='checkbox']"
+        );
+        for (let i = 0; i < checkboxes.length; i++) {
+          const checkbox = checkboxes[i];
+          if (checkbox.checked) {
+            checkedColors.push(checkbox.value);
+          }
+        }
+
+        // Hide all words
+        const allSpans = document.querySelectorAll("#word-list span");
+        for (let i = 0; i < allSpans.length; i++) {
+          const span = allSpans[i];
+          span.style.visibility = "hidden";
+        }
+
+        // Show words with selected colors
+        for (let i = 0; i < checkedColors.length; i++) {
+          const color = checkedColors[i];
+          const colorSpans = document.querySelectorAll(
+            `#word-list span[style*="color: ${color}"]`
+          );
+          for (let j = 0; j < colorSpans.length; j++) {
+            const span = colorSpans[j];
+            span.style.visibility = "visible";
+          }
+        }
+      }
+
+      for (let i = 0; i < checkboxes.length; i++) {
+        const checkbox = checkboxes[i];
+        checkbox.addEventListener("change", function () {
+          filterColors();
+        });
+      }
+
+      function generateWords() {
+        for (let i = 0; i < 5000; i++) {
+          const word = randomWord();
+          const wordEl = document.createElement("span");
+          // wordEl.textContent = word + " ";
+          // wordListEl.appendChild(wordEl);
+          wordEl.textContent = word + " ";
+          const color =
+            possibleColors[Math.floor(Math.random() * possibleColors.length)];
+          wordEl.style.color = color;
+          wordListEl.appendChild(wordEl);
+        }
+      }
+
+      generateWords();
+    </script>
+  </body>
+</html>
